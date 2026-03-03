@@ -4,132 +4,173 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Caixa Estação Verde</title>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <style>
-body{
-font-family: Arial;
-background:#0f172a;
-color:white;
-padding:20px;
-}
-.card{
-background:#1e293b;
-padding:20px;
-border-radius:10px;
-margin-bottom:20px;
-}
-input{
-width:100%;
-padding:10px;
-margin:5px 0;
-border-radius:5px;
-border:none;
-}
-button{
-width:100%;
-padding:12px;
-background:#22c55e;
-color:white;
-border:none;
-border-radius:5px;
-font-weight:bold;
-cursor:pointer;
-}
-button:hover{
-opacity:0.9;
-}
+body{font-family:Arial;background:#0f172a;color:white;padding:20px}
+.card{background:#1e293b;padding:20px;border-radius:10px;margin-bottom:20px}
+input{width:100%;padding:10px;margin:5px 0;border-radius:5px;border:none}
+button{width:100%;padding:12px;background:#22c55e;color:white;border:none;border-radius:5px;font-weight:bold;cursor:pointer}
+button:hover{opacity:0.9}
+.item{background:#334155;padding:10px;margin:5px 0;border-radius:5px}
 </style>
 </head>
-
 <body>
 
 <h1>🌿 Caixa Estação Verde</h1>
 
 <div class="card">
-<h2>Cadastrar Produto</h2>
-<input type="text" id="nome" placeholder="Nome do produto">
-<input type="number" id="preco" placeholder="Preço">
-<input type="number" id="estoque" placeholder="Estoque">
-<button onclick="cadastrarProduto()">Salvar Produto</button>
+<h2>Nova Venda</h2>
+<input type="text" id="buscarProduto" placeholder="Nome do produto">
+<input type="number" id="quantidade" placeholder="Quantidade">
+<button onclick="adicionarProduto()">Adicionar</button>
+
+<div id="itens"></div>
+
+<h3>Total: R$ <span id="total">0</span></h3>
+<button onclick="finalizarVenda()">Finalizar Venda</button>
 </div>
 
 <div class="card">
-<h2>Lista de Produtos</h2>
-<div id="listaProdutos"></div>
+<h2>Histórico</h2>
+<div id="historico"></div>
+<h3>Total vendido hoje: R$ <span id="totalDia">0</span></h3>
 </div>
 
 <script>
 
 const SUPABASE_URL = "https://ycxfeztfhffgyrmeyira.supabase.co"
-
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljeGZlenRmaGZmZ3lybWV5aXJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NzE3MDQsImV4cCI6MjA4ODE0NzcwNH0.MTf_fzLganV20cMovHrrLwOOxfE5y3UlXyyDVst4BnE"
 
 const { createClient } = supabase
 const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY)
 
-async function cadastrarProduto(){
+let carrinho = []
+let total = 0
 
-let nome = document.getElementById("nome").value
-let preco = document.getElementById("preco").value
-let estoque = document.getElementById("estoque").value
+async function adicionarProduto(){
 
-if(!nome || !preco || !estoque){
-alert("Preencha todos os campos")
-return
-}
+let nome = document.getElementById("buscarProduto").value
+let quantidade = Number(document.getElementById("quantidade").value)
 
-const { error } = await supabaseClient
-.from("produtos")
-.insert([{ nome: nome, preco: Number(preco), estoque: Number(estoque) }])
-
-if(error){
-alert("Erro: " + error.message)
-console.log(error)
-return
-}
-
-alert("Produto salvo com sucesso!")
-
-document.getElementById("nome").value = ""
-document.getElementById("preco").value = ""
-document.getElementById("estoque").value = ""
-
-carregarProdutos()
-}
-
-async function carregarProdutos(){
+if(!nome || !quantidade) return alert("Preencha tudo")
 
 const { data, error } = await supabaseClient
 .from("produtos")
 .select("*")
-.order("id", { ascending: false })
+.ilike("nome", `%${nome}%`)
+.limit(1)
 
-if(error){
-console.log(error)
-return
-}
+if(error || !data.length) return alert("Produto não encontrado")
 
-let lista = document.getElementById("listaProdutos")
-lista.innerHTML = ""
+let produto = data[0]
 
-data.forEach(produto => {
-lista.innerHTML += `
-<p>
-<strong>${produto.nome}</strong><br>
-Preço: R$ ${produto.preco}<br>
-Estoque: ${produto.estoque}
-</p>
-<hr>
-`
+if(produto.estoque < quantidade)
+return alert("Estoque insuficiente")
+
+let subtotal = produto.preco * quantidade
+
+carrinho.push({
+id: produto.id,
+nome: produto.nome,
+quantidade,
+preco: produto.preco,
+subtotal
 })
 
+total += subtotal
+render()
+document.getElementById("buscarProduto").value = ""
+document.getElementById("quantidade").value = ""
 }
 
-carregarProdutos()
+function render(){
+let div = document.getElementById("itens")
+div.innerHTML = ""
+carrinho.forEach(item=>{
+div.innerHTML += `
+<div class="item">
+${item.nome} - ${item.quantidade} x ${item.preco}
+= R$ ${item.subtotal}
+</div>`
+})
+document.getElementById("total").innerText = total
+}
+
+async function finalizarVenda(){
+
+if(!carrinho.length) return alert("Carrinho vazio")
+
+const { data: venda, error } = await supabaseClient
+.from("vendas")
+.insert([{ total }])
+.select()
+
+if(error) return alert("Erro ao salvar venda")
+
+let venda_id = venda[0].id
+
+for(let item of carrinho){
+
+await supabaseClient.from("itens_venda").insert([{
+venda_id,
+produto_id: item.id,
+quantidade: item.quantidade,
+preco: item.preco
+}])
+
+let { data: prod } = await supabaseClient
+.from("produtos")
+.select("estoque")
+.eq("id", item.id)
+.single()
+
+let novoEstoque = prod.estoque - item.quantidade
+
+await supabaseClient
+.from("produtos")
+.update({ estoque: novoEstoque })
+.eq("id", item.id)
+
+}
+
+alert("Venda finalizada!")
+
+carrinho = []
+total = 0
+render()
+carregarHistorico()
+}
+
+async function carregarHistorico(){
+
+const { data } = await supabaseClient
+.from("vendas")
+.select("*")
+.order("id", { ascending: false })
+
+let div = document.getElementById("historico")
+div.innerHTML = ""
+
+let totalDia = 0
+let hoje = new Date().toISOString().split("T")[0]
+
+data.forEach(v=>{
+let dataVenda = new Date(v.created_at).toISOString().split("T")[0]
+if(dataVenda === hoje) totalDia += Number(v.total)
+
+div.innerHTML += `
+<p>
+Venda #${v.id}<br>
+Total: R$ ${v.total}<br>
+Data: ${new Date(v.created_at).toLocaleString()}
+</p><hr>`
+})
+
+document.getElementById("totalDia").innerText = totalDia
+}
+
+carregarHistorico()
 
 </script>
-
 </body>
 </html>
