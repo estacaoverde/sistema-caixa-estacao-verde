@@ -67,7 +67,7 @@ font-size:12px;
 <div class="card">
 <h3>Cadastrar Produto</h3>
 <input id="nome" placeholder="Nome do produto">
-<input id="valor" type="number" placeholder="Valor">
+<input id="preco" type="number" placeholder="Preço">
 <input id="estoque" type="number" placeholder="Quantidade inicial">
 <button onclick="cadastrarProduto()">Salvar Produto</button>
 </div>
@@ -111,13 +111,13 @@ venda.innerHTML=""
 produtos.forEach(p=>{
 lista.innerHTML += `
 <div class="lista">
-<span>${p.nome} - R$ ${p.valor} - Estoque: ${p.estoque}</span>
+<span>${p.nome} - R$ ${Number(p.preco).toFixed(2)} - Estoque: ${p.estoque}</span>
 </div>`
 
 if(p.estoque > 0){
 venda.innerHTML += `
 <div class="lista">
-<span>${p.nome} - R$ ${p.valor}</span>
+<span>${p.nome} - R$ ${Number(p.preco).toFixed(2)}</span>
 <button class="small-btn" onclick="addCarrinho(${p.id})">Adicionar</button>
 </div>`
 }
@@ -134,7 +134,7 @@ produtos
 .forEach(p=>{
 venda.innerHTML += `
 <div class="lista">
-<span>${p.nome} - R$ ${p.valor}</span>
+<span>${p.nome} - R$ ${Number(p.preco).toFixed(2)}</span>
 <button class="small-btn" onclick="addCarrinho(${p.id})">Adicionar</button>
 </div>`
 })
@@ -147,24 +147,24 @@ atualizarTotal()
 }
 
 function atualizarTotal(){
-let total = carrinho.reduce((soma,p)=>soma + Number(p.valor),0)
+let total = carrinho.reduce((soma,p)=>soma + Number(p.preco),0)
 document.getElementById("totalVenda").innerText = "R$ " + total.toFixed(2)
 }
 
 async function cadastrarProduto(){
 let nome = document.getElementById("nome").value
-let valor = document.getElementById("valor").value
+let preco = document.getElementById("preco").value
 let estoque = document.getElementById("estoque").value
 
-if(!nome || !valor || !estoque){
+if(!nome || !preco || !estoque){
 alert("Preencha tudo")
 return
 }
 
-await supabase.from("produtos").insert([{nome,valor,estoque}])
+await supabase.from("produtos").insert([{nome,preco,estoque}])
 
 document.getElementById("nome").value=""
-document.getElementById("valor").value=""
+document.getElementById("preco").value=""
 document.getElementById("estoque").value=""
 
 carregarProdutos()
@@ -176,7 +176,7 @@ alert("Carrinho vazio")
 return
 }
 
-let total = carrinho.reduce((soma,p)=>soma + Number(p.valor),0)
+let total = carrinho.reduce((soma,p)=>soma + Number(p.preco),0)
 
 await supabase.from("vendas").insert([{
 total: total
