@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Caixa - Estação Verde</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+body{
+font-family: Arial;
+background:#0f172a;
+color:white;
+margin:0;
+padding:15px;
+}
+h2{color:#22c55e;}
+input,button{
+padding:10px;
+margin:5px 0;
+width:100%;
+border-radius:8px;
+border:none;
+}
+button{
+background:#22c55e;
+color:white;
+font-weight:bold;
+cursor:pointer;
+}
+button:hover{
+background:#16a34a;
+}
+.card{
+background:#1e293b;
+padding:15px;
+margin-bottom:20px;
+border-radius:12px;
+}
+.lista{
+background:#334155;
+padding:8px;
+margin:5px 0;
+border-radius:8px;
+display:flex;
+justify-content:space-between;
+align-items:center;
+}
+.total{
+font-size:22px;
+color:#22c55e;
+font-weight:bold;
+}
+.small-btn{
+width:auto;
+padding:5px 10px;
+margin-left:5px;
+font-size:12px;
+}
+</style>
+</head>
+<body>
+
+<h2>🌿 Caixa Estação Verde</h2>
+
+<div class="card">
+<h3>Cadastrar Produto</h3>
+<input id="nome" placeholder="Nome do produto">
+<input id="valor" type="number" placeholder="Valor">
+<input id="estoque" type="number" placeholder="Quantidade inicial">
+<button onclick="cadastrarProduto()">Salvar Produto</button>
+</div>
+
+<div class="card">
+<h3>Lista de Produtos</h3>
+<div id="listaProdutos"></div>
+</div>
+
+<div class="card">
+<h3>Nova Venda</h3>
+<input id="buscarProduto" placeholder="Buscar produto pelo nome" onkeyup="filtrarProdutos()">
+<div id="produtosVenda"></div>
+<h4>Total:</h4>
+<div class="total" id="totalVenda">R$ 0.00</div>
+<button onclick="finalizarVenda()">Finalizar Venda</button>
+</div>
+
+<script>
+
+const SUPABASE_URL = "https://ycxfeztfhffgyrmeyira.supabase.co"
+const SUPABASE_KEY = "sb_publishable_U-mUDugGJyjbSvPj0x10CA_WJsjov2k"
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+
+let carrinho = []
+let produtos = []
+
+async function carregarProdutos(){
+let { data } = await supabase.from("produtos").select("*").order("id",{ascending:true})
+produtos = data || []
+mostrarProdutos()
+}
+
+function mostrarProdutos(){
+let lista = document.getElementById("listaProdutos")
+let venda = document.getElementById("produtosVenda")
+lista.innerHTML=""
+venda.innerHTML=""
+
+produtos.forEach(p=>{
+lista.innerHTML += `
+<div class="lista">
+<span>${p.nome} - R$ ${p.valor} - Estoque: ${p.estoque}</span>
+</div>`
+
+if(p.estoque > 0){
+venda.innerHTML += `
+<div class="lista">
+<span>${p.nome} - R$ ${p.valor}</span>
+<button class="small-btn" onclick="addCarrinho(${p.id})">Adicionar</button>
+</div>`
+}
+})
+}
+
+function filtrarProdutos(){
+let busca = document.getElementById("buscarProduto").value.toLowerCase()
+let venda = document.getElementById("produtosVenda")
+venda.innerHTML=""
+
+produtos
+.filter(p=>p.nome.toLowerCase().includes(busca) && p.estoque>0)
+.forEach(p=>{
+venda.innerHTML += `
+<div class="lista">
+<span>${p.nome} - R$ ${p.valor}</span>
+<button class="small-btn" onclick="addCarrinho(${p.id})">Adicionar</button>
+</div>`
+})
+}
+
+function addCarrinho(id){
+let produto = produtos.find(p=>p.id===id)
+carrinho.push(produto)
+atualizarTotal()
+}
+
+function atualizarTotal(){
+let total = carrinho.reduce((soma,p)=>soma + Number(p.valor),0)
+document.getElementById("totalVenda").innerText = "R$ " + total.toFixed(2)
+}
+
+async function cadastrarProduto(){
+let nome = document.getElementById("nome").value
+let valor = document.getElementById("valor").value
+let estoque = document.getElementById("estoque").value
+
+if(!nome || !valor || !estoque){
+alert("Preencha tudo")
+return
+}
+
+await supabase.from("produtos").insert([{nome,valor,estoque}])
+
+document.getElementById("nome").value=""
+document.getElementById("valor").value=""
+document.getElementById("estoque").value=""
+
+carregarProdutos()
+}
+
+async function finalizarVenda(){
+if(carrinho.length===0){
+alert("Carrinho vazio")
+return
+}
+
+let total = carrinho.reduce((soma,p)=>soma + Number(p.valor),0)
+
+await supabase.from("vendas").insert([{
+total: total
+}])
+
+for(let item of carrinho){
+await supabase
+.from("produtos")
+.update({estoque: item.estoque - 1})
+.eq("id", item.id)
+}
+
+alert("Venda Finalizada!")
+
+carrinho=[]
+atualizarTotal()
+carregarProdutos()
+}
+
+carregarProdutos()
+
+</script>
+
+</body>
+</html>
