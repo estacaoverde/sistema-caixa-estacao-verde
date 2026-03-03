@@ -14,14 +14,12 @@ background:#0f172a;
 color:white;
 padding:20px;
 }
-
 .card{
 background:#1e293b;
 padding:20px;
 border-radius:10px;
 margin-bottom:20px;
 }
-
 input{
 width:100%;
 padding:10px;
@@ -29,7 +27,6 @@ margin:5px 0;
 border-radius:5px;
 border:none;
 }
-
 button{
 width:100%;
 padding:12px;
@@ -40,13 +37,8 @@ border-radius:5px;
 font-weight:bold;
 cursor:pointer;
 }
-
 button:hover{
 opacity:0.9;
-}
-
-h2{
-margin-top:0;
 }
 </style>
 </head>
@@ -74,7 +66,8 @@ const SUPABASE_URL = "https://ycxfeztfhffgyrmeyira.supabase.co"
 
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljeGZlenRmaGZmZ3lybWV5aXJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NzE3MDQsImV4cCI6MjA4ODE0NzcwNH0.MTf_fzLganV20cMovHrrLwOOxfE5y3UlXyyDVst4BnE"
 
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+const { createClient } = supabase
+const supabaseClient = createClient(SUPABASE_URL, SUPABASE_KEY)
 
 async function cadastrarProduto(){
 
@@ -87,9 +80,9 @@ alert("Preencha todos os campos")
 return
 }
 
-const { data, error } = await supabaseClient
+const { error } = await supabaseClient
 .from("produtos")
-.insert([{ nome, preco, estoque }])
+.insert([{ nome: nome, preco: Number(preco), estoque: Number(estoque) }])
 
 if(error){
 alert("Erro: " + error.message)
