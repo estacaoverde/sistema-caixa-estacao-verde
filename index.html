@@ -5,21 +5,54 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Caixa Estação Verde</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
-body{font-family:Arial;background:#0f172a;color:white;padding:20px}
-.card{background:#1e293b;padding:20px;border-radius:10px;margin-bottom:20px}
-input{width:100%;padding:10px;margin:5px 0;border-radius:5px;border:none}
-button{width:100%;padding:12px;background:#22c55e;color:white;border:none;border-radius:5px;font-weight:bold;cursor:pointer}
+body{
+font-family:Arial;
+background:#0f172a;
+color:white;
+padding:20px;
+}
+.card{
+background:#1e293b;
+padding:20px;
+border-radius:10px;
+margin-bottom:20px;
+}
+input{
+width:100%;
+padding:10px;
+margin:5px 0;
+border-radius:5px;
+border:none;
+}
+button{
+width:100%;
+padding:12px;
+background:#22c55e;
+color:white;
+border:none;
+border-radius:5px;
+font-weight:bold;
+cursor:pointer;
+}
 button:hover{opacity:0.9}
-.item{background:#334155;padding:10px;margin:5px 0;border-radius:5px}
+.item{
+background:#334155;
+padding:10px;
+margin:5px 0;
+border-radius:5px;
+}
 </style>
 </head>
+
 <body>
 
 <h1>🌿 Caixa Estação Verde</h1>
 
 <div class="card">
 <h2>Nova Venda</h2>
+
 <input type="text" id="buscarProduto" placeholder="Nome do produto">
 <input type="number" id="quantidade" placeholder="Quantidade">
 <button onclick="adicionarProduto()">Adicionar</button>
@@ -39,6 +72,7 @@ button:hover{opacity:0.9}
 <script>
 
 const SUPABASE_URL = "https://ycxfeztfhffgyrmeyira.supabase.co"
+
 const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljeGZlenRmaGZmZ3lybWV5aXJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NzE3MDQsImV4cCI6MjA4ODE0NzcwNH0.MTf_fzLganV20cMovHrrLwOOxfE5y3UlXyyDVst4BnE"
 
 const { createClient } = supabase
@@ -79,6 +113,7 @@ subtotal
 
 total += subtotal
 render()
+
 document.getElementById("buscarProduto").value = ""
 document.getElementById("quantidade").value = ""
 }
@@ -89,7 +124,7 @@ div.innerHTML = ""
 carrinho.forEach(item=>{
 div.innerHTML += `
 <div class="item">
-${item.nome} - ${item.quantidade} x ${item.preco}
+${item.nome} - ${item.quantidade} x R$ ${item.preco}
 = R$ ${item.subtotal}
 </div>`
 })
@@ -100,19 +135,31 @@ async function finalizarVenda(){
 
 if(!carrinho.length) return alert("Carrinho vazio")
 
+let hoje = new Date()
+let dataFormatada = hoje.toLocaleDateString()
+
 const { data: venda, error } = await supabaseClient
 .from("vendas")
-.insert([{ total }])
+.insert([{
+total: total,
+cliente: "Balcão",
+pagamento: "Dinheiro",
+data: dataFormatada
+}])
 .select()
 
-if(error) return alert("Erro ao salvar venda")
+if(error){
+alert("Erro ao salvar venda: " + error.message)
+console.log(error)
+return
+}
 
 let venda_id = venda[0].id
 
 for(let item of carrinho){
 
 await supabaseClient.from("itens_venda").insert([{
-venda_id,
+venda_id: venda_id,
 produto_id: item.id,
 quantidade: item.quantidade,
 preco: item.preco
@@ -172,5 +219,6 @@ document.getElementById("totalDia").innerText = totalDia
 carregarHistorico()
 
 </script>
+
 </body>
-</html>
+  </html>
