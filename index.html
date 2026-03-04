@@ -2,16 +2,16 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Estação Verde - Sistema Caixa</title>
+<title>Estação Verde - Sistema</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
-body{font-family:Arial;margin:0;background:#f2f2f2}
+body{font-family:Arial;background:#f2f2f2;margin:0}
 .container{padding:20px}
 .hidden{display:none}
-input{padding:8px;margin:5px;width:200px}
+input{padding:8px;margin:5px}
 button{padding:8px 12px;margin:5px;border:none;border-radius:6px;cursor:pointer}
 .green{background:#27ae60;color:white}
 .blue{background:#2980b9;color:white}
@@ -25,12 +25,12 @@ button{padding:8px 12px;margin:5px;border:none;border-radius:6px;cursor:pointer}
 <h2>🔐 Login</h2>
 <input id="usuarioInput" placeholder="Usuário">
 <input id="senhaInput" type="password" placeholder="Senha">
-<button class="green" onclick="fazerLogin()">Entrar</button>
+<button type="button" class="green" onclick="fazerLogin()">Entrar</button>
 </div>
 
 <div id="sistema" class="hidden container">
 
-<h2>🌿 Estação Verde - Caixa</h2>
+<h2>🌿 Estação Verde</h2>
 
 <button class="green" onclick="abrirCaixa()">Abrir Caixa</button>
 <button class="red" onclick="fecharCaixa()">Fechar Caixa</button>
@@ -78,6 +78,7 @@ const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 let vendaAtual = [];
 let caixaAberto = false;
 
+/* LOGIN */
 function fazerLogin(){
 let user = document.getElementById("usuarioInput").value.trim();
 let pass = document.getElementById("senhaInput").value.trim();
@@ -85,13 +86,12 @@ let pass = document.getElementById("senhaInput").value.trim();
 if(user === "Nerys" && pass === "2020"){
 document.getElementById("telaLogin").style.display = "none";
 document.getElementById("sistema").classList.remove("hidden");
-carregarEstoque();
-carregarHistorico();
 }else{
 alert("Usuário ou senha incorretos");
 }
 }
 
+/* CAIXA */
 async function abrirCaixa(){
 await supabase.from("caixa").insert({status:"aberto",total:0});
 caixaAberto=true;
@@ -104,6 +104,7 @@ caixaAberto=false;
 alert("Caixa Fechado");
 }
 
+/* PRODUTOS */
 async function addProduto(){
 await supabase.from("produtos").insert({
 nome:nomeProduto.value,
@@ -116,35 +117,23 @@ carregarEstoque();
 async function carregarEstoque(){
 let {data} = await supabase.from("produtos").select("*");
 listaEstoque.innerHTML="";
+if(data){
 data.forEach(p=>{
 listaEstoque.innerHTML+=`
 <div class="card">
 ${p.nome} - R$ ${p.preco} - Qtd: ${p.quantidade}
-<button onclick="editar(${p.id})">Editar</button>
-<button onclick="remover(${p.id})">Remover</button>
 </div>`;
 });
 }
-
-async function editar(id){
-let novaQtd = prompt("Nova quantidade:");
-let novoPreco = prompt("Novo preço:");
-await supabase.from("produtos")
-.update({quantidade:Number(novaQtd),preco:Number(novoPreco)})
-.eq("id",id);
-carregarEstoque();
 }
 
-async function remover(id){
-await supabase.from("produtos").delete().eq("id",id);
-carregarEstoque();
-}
-
+/* VENDA */
 async function buscar(){
 let {data} = await supabase.from("produtos")
 .select("*")
 .ilike("nome","%"+buscarProduto.value+"%");
 resultadoBusca.innerHTML="";
+if(data){
 data.forEach(p=>{
 resultadoBusca.innerHTML+=`
 <div class="card">
@@ -152,6 +141,7 @@ ${p.nome} - R$ ${p.preco}
 <button onclick="addVenda(${p.preco})">Adicionar</button>
 </div>`;
 });
+}
 }
 
 function addVenda(preco){
@@ -182,17 +172,6 @@ cliente_nome:clienteNome.value,
 cliente_doc:clienteDoc.value
 });
 
-let {data} = await supabase.from("caixa")
-.select("*")
-.eq("status","aberto")
-.single();
-
-await supabase.from("caixa")
-.update({total:data.total+total})
-.eq("id",data.id);
-
-totalCaixa.innerText=(data.total+total).toFixed(2);
-
 gerarPDF(total);
 
 vendaAtual=[];
@@ -205,15 +184,17 @@ let {data} = await supabase.from("vendas")
 .select("*")
 .order("id",{ascending:false});
 historico.innerHTML="";
+if(data){
 data.forEach(v=>{
 historico.innerHTML+=`
 <div class="card">
 Venda #${v.id} - R$ ${v.total}
-<br>Cliente: ${v.cliente_nome}
 </div>`;
 });
 }
+}
 
+/* PDF */
 function gerarPDF(total){
 const { jsPDF } = window.jspdf;
 const pdf=new jsPDF();
@@ -221,7 +202,6 @@ pdf.text("Estação Verde",20,20);
 pdf.text("Cliente: "+clienteNome.value,20,30);
 pdf.text("CPF/CNPJ: "+clienteDoc.value,20,40);
 pdf.text("Total: R$ "+total.toFixed(2),20,55);
-pdf.text("Data: "+new Date().toLocaleString(),20,70);
 pdf.save("comprovante.pdf");
 }
 
