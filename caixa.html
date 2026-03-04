@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Caixa</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+body{
+font-family:Arial;
+background:#0f172a;
+color:white;
+padding:20px;
+}
+.card{
+background:#1e293b;
+padding:20px;
+border-radius:10px;
+margin-bottom:20px;
+}
+input{
+width:100%;
+padding:10px;
+margin:5px 0;
+border-radius:5px;
+border:none;
+}
+button{
+width:100%;
+padding:12px;
+background:#22c55e;
+color:white;
+border:none;
+border-radius:5px;
+margin-top:10px;
+cursor:pointer;
+}
+button:hover{opacity:0.9}
+.status{
+font-weight:bold;
+margin-top:10px;
+}
+</style>
+</head>
+<body>
+
+<script>
+if(localStorage.getItem("logado")!=="sim"){
+window.location.href="index.html"
+}
+</script>
+
+<h2>🔒 Controle de Caixa</h2>
+
+<div class="card">
+<h3>Abertura de Caixa</h3>
+<input type="number" id="valorInicial" placeholder="Valor inicial do caixa">
+<button onclick="abrirCaixa()">Abrir Caixa</button>
+</div>
+
+<div class="card">
+<h3>Fechamento de Caixa</h3>
+<button onclick="fecharCaixa()">Fechar Caixa</button>
+</div>
+
+<div class="card">
+<h3>Status</h3>
+<div id="status" class="status"></div>
+</div>
+
+<script>
+
+function atualizarStatus(){
+let aberto = localStorage.getItem("caixaAberto")
+let valor = localStorage.getItem("valorInicial")
+
+let statusDiv = document.getElementById("status")
+
+if(aberto === "sim"){
+statusDiv.innerHTML = "🟢 Caixa ABERTO<br>Valor inicial: R$ " + valor
+}else{
+statusDiv.innerHTML = "🔴 Caixa FECHADO"
+}
+}
+
+function abrirCaixa(){
+let valor = document.getElementById("valorInicial").value
+
+if(!valor){
+alert("Digite o valor inicial")
+return
+}
+
+localStorage.setItem("caixaAberto","sim")
+localStorage.setItem("valorInicial",valor)
+
+alert("Caixa aberto com R$ " + valor)
+
+atualizarStatus()
+}
+
+function fecharCaixa(){
+localStorage.removeItem("caixaAberto")
+localStorage.removeItem("valorInicial")
+
+alert("Caixa fechado")
+
+atualizarStatus()
+}
+
+atualizarStatus()
+
+</script>
+
+</body>
+</html>
