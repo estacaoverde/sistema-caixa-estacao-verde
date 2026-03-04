@@ -9,9 +9,12 @@
 <style>
 body{font-family:Arial;background:#0f172a;color:white;padding:20px}
 .card{background:#1e293b;padding:20px;border-radius:10px;margin-bottom:20px}
-input{width:100%;padding:10px;margin:5px 0;border-radius:5px;border:none}
-button{width:100%;padding:12px;background:#22c55e;color:white;border:none;border-radius:5px;margin-top:5px}
-.item{background:#334155;padding:10px;margin:5px 0;border-radius:5px}
+input{padding:6px;margin:4px;border-radius:5px;border:none}
+button{padding:6px 10px;margin:3px;border:none;border-radius:5px;color:white;cursor:pointer}
+.btn-green{background:#22c55e}
+.btn-blue{background:#3b82f6}
+.btn-red{background:#ef4444}
+.item{background:#334155;padding:10px;margin:8px 0;border-radius:5px}
 </style>
 </head>
 <body>
@@ -22,18 +25,18 @@ window.location.href="index.html"
 }
 </script>
 
-<h2>📦 Estoque</h2>
+<h2>📦 Controle de Estoque</h2>
 
 <div class="card">
 <h3>Adicionar Produto</h3>
-<input type="text" id="nome" placeholder="Nome do produto">
+<input type="text" id="nome" placeholder="Nome">
 <input type="number" id="preco" placeholder="Preço">
-<input type="number" id="estoqueQtd" placeholder="Quantidade">
-<button onclick="adicionarProduto()">Salvar Produto</button>
+<input type="number" id="quantidade" placeholder="Quantidade">
+<button class="btn-green" onclick="adicionarProduto()">Salvar</button>
 </div>
 
 <div class="card">
-<h3>Lista de Produtos</h3>
+<h3>Produtos</h3>
 <div id="lista"></div>
 </div>
 
@@ -45,26 +48,22 @@ const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSI
 const supabaseClient = supabase.createClient(SUPABASE_URL,SUPABASE_KEY)
 
 async function adicionarProduto(){
-
 let nome=document.getElementById("nome").value
 let preco=document.getElementById("preco").value
-let estoque=document.getElementById("estoqueQtd").value
+let quantidade=document.getElementById("quantidade").value
 
-if(!nome||!preco||!estoque){
+if(!nome||!preco||!quantidade){
 alert("Preencha tudo")
 return
 }
 
-let {error} = await supabaseClient
-.from("produtos")
-.insert([{nome,preco,estoque}])
+await supabaseClient.from("produtos").insert([{
+nome,
+preco:Number(preco),
+estoque:Number(quantidade)
+}])
 
-if(error){
-alert("Erro: "+error.message)
-return
-}
-
-alert("Produto salvo!")
+alert("Produto adicionado!")
 listar()
 }
 
@@ -73,27 +72,85 @@ async function listar(){
 let {data,error} = await supabaseClient
 .from("produtos")
 .select("*")
+.order("id",{ascending:false})
 
 if(error){
-document.getElementById("lista").innerHTML="ERRO: "+error.message
-return
-}
-
-if(!data.length){
-document.getElementById("lista").innerHTML="Nenhum produto cadastrado"
+document.getElementById("lista").innerHTML="Erro: "+error.message
 return
 }
 
 let div=document.getElementById("lista")
 div.innerHTML=""
 
+if(!data.length){
+div.innerHTML="Nenhum produto cadastrado"
+return
+}
+
 data.forEach(p=>{
 div.innerHTML+=`
 <div class="item">
-${p.nome} | R$ ${p.preco} | Estoque: ${p.estoque}
+<b>${p.nome}</b><br>
+Preço: R$ ${p.preco}<br>
+Estoque: ${p.estoque}<br><br>
+
+<button class="btn-green" onclick="alterarEstoque(${p.id},1)">+1</button>
+<button class="btn-blue" onclick="alterarEstoque(${p.id},-1)">-1</button>
+<button class="btn-blue" onclick="editarPreco(${p.id})">Editar Preço</button>
+<button class="btn-red" onclick="removerProduto(${p.id})">Remover</button>
+
 </div>`
 })
 
+}
+
+async function alterarEstoque(id,valor){
+
+let {data} = await supabaseClient
+.from("produtos")
+.select("estoque")
+.eq("id",id)
+.single()
+
+let novoEstoque = data.estoque + valor
+
+if(novoEstoque < 0){
+alert("Estoque não pode ser negativo")
+return
+}
+
+await supabaseClient
+.from("produtos")
+.update({estoque:novoEstoque})
+.eq("id",id)
+
+listar()
+}
+
+async function editarPreco(id){
+
+let novoPreco = prompt("Digite o novo preço:")
+
+if(!novoPreco) return
+
+await supabaseClient
+.from("produtos")
+.update({preco:Number(novoPreco)})
+.eq("id",id)
+
+listar()
+}
+
+async function removerProduto(id){
+
+if(!confirm("Tem certeza que deseja remover?")) return
+
+await supabaseClient
+.from("produtos")
+.delete()
+.eq("id",id)
+
+listar()
 }
 
 listar()
