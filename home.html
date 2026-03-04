@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Menu</title>
+<style>
+body{font-family:Arial;background:#0f172a;color:white;text-align:center;padding:40px}
+button{display:block;width:100%;max-width:400px;margin:15px auto;padding:15px;font-size:18px;border:none;border-radius:8px;background:#22c55e;color:white}
+</style>
+</head>
+<body>
+
+<h1>🌿 Sistema Estação Verde</h1>
+
+<button onclick="location.href='vendas.html'">🛒 Vendas</button>
+<button onclick="location.href='estoque.html'">📦 Estoque</button>
+<button onclick="location.href='historico.html'">📊 Histórico</button>
+<button onclick="location.href='caixa.html'">🔒 Caixa</button>
+<button onclick="sair()" style="background:#ef4444;">🚪 Sair</button>
+
+<script>
+if(localStorage.getItem("logado")!=="sim"){window.location.href="index.html"}
+function sair(){localStorage.removeItem("logado");window.location.href="index.html"}
+</script>
+
+</body>
+</html>
