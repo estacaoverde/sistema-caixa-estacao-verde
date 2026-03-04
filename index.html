@@ -2,205 +2,205 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Estação Verde - Caixa</title>
+<title>Estação Verde - Sistema Profissional</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
-body{font-family:Arial;background:#eef5ee;margin:0;padding:15px}
-h1{color:#1b5e20}
-h3{margin-top:30px}
-input{padding:8px;margin:5px;border-radius:6px;border:1px solid #ccc}
-button{padding:8px 14px;margin:5px;border:none;border-radius:6px;cursor:pointer}
-.green{background:#2e7d32;color:white}
-.red{background:#c62828;color:white}
-.blue{background:#1565c0;color:white}
-.card{background:white;padding:10px;margin:8px 0;border-radius:8px;box-shadow:0 2px 5px rgba(0,0,0,0.1)}
+body{
+  font-family: Arial;
+  background:#eef5ee;
+  padding:15px;
+  margin:0;
+}
+h1{
+  color:#1b5e20;
+}
+.section{
+  background:white;
+  padding:15px;
+  margin-bottom:20px;
+  border-radius:10px;
+  box-shadow:0 2px 6px rgba(0,0,0,0.1);
+}
+input{
+  padding:8px;
+  margin:5px 0;
+  width:100%;
+  border-radius:6px;
+  border:1px solid #ccc;
+}
+button{
+  padding:10px;
+  margin-top:8px;
+  width:100%;
+  border:none;
+  border-radius:6px;
+  background:#2e7d32;
+  color:white;
+  font-weight:bold;
+}
+button:hover{
+  background:#1b5e20;
+}
+.item{
+  display:flex;
+  justify-content:space-between;
+  margin:6px 0;
+}
+.total{
+  font-size:18px;
+  font-weight:bold;
+  margin-top:10px;
+}
 </style>
 </head>
 <body>
 
-<h1>🌿 Estação Verde - Sistema de Caixa</h1>
+<h1>🌿 Estação Verde</h1>
 
-<button class="green" onclick="abrirCaixa()">Abrir Caixa</button>
-<button class="red" onclick="fecharCaixa()">Fechar Caixa</button>
+<div class="section">
+<h3>📦 Cadastrar Produto</h3>
+<input id="nome" placeholder="Nome do Produto">
+<input id="preco" type="number" placeholder="Preço">
+<input id="quantidade" type="number" placeholder="Quantidade">
+<button onclick="salvarProduto()">Salvar Produto</button>
+</div>
 
-<h3>Total Caixa: R$ <span id="totalCaixa">0.00</span></h3>
+<div class="section">
+<h3>🛒 Nova Venda</h3>
+<input id="buscar" placeholder="Buscar produto">
+<button onclick="buscarProduto()">Buscar</button>
 
-<hr>
+<div id="resultado"></div>
 
-<h3>📦 Estoque</h3>
-<input id="nomeProduto" placeholder="Nome do Produto">
-<input id="precoProduto" type="number" placeholder="Preço">
-<input id="quantProduto" type="number" placeholder="Quantidade">
-<button class="blue" onclick="addProduto()">Adicionar Produto</button>
+<div class="total">Total: R$ <span id="totalVenda">0.00</span></div>
+<button onclick="finalizarVenda()">Finalizar Venda</button>
+</div>
 
-<div id="listaEstoque"></div>
-
-<hr>
-
-<h3>🛒 Venda</h3>
-<input id="buscarProduto" placeholder="Buscar produto">
-<button onclick="buscar()">Buscar</button>
-
-<div id="resultadoBusca"></div>
-
-<input id="clienteNome" placeholder="Nome Cliente">
-<input id="clienteDoc" placeholder="CPF/CNPJ">
-
-<h3>Total Venda: R$ <span id="totalVenda">0.00</span></h3>
-<button class="green" onclick="finalizarVenda()">Finalizar Venda</button>
-
-<hr>
-
+<div class="section">
 <h3>📊 Histórico</h3>
 <div id="historico"></div>
+<div class="total">Total vendido hoje: R$ <span id="totalDia">0.00</span></div>
+</div>
 
 <script>
 
-const supabaseUrl = "https://ycxfeztfhffgyrmeyira.supabase.co";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljeGZlenRmaGZmZ3lybWV5aXJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NzE3MDQsImV4cCI6MjA4ODE0NzcwNH0.MTf_fzLganV20cMovHrrLwOOxfE5y3UlXyyDVst4BnE";
+const supabase = window.supabase.createClient(
+"https://ycxfeztfhffgyrmeyira.supabase.co",
+"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljeGZlenRmaGZmZ3lybWV5aXJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NzE3MDQsImV4cCI6MjA4ODE0NzcwNH0.MTf_fzLganV20cMovHrrLwOOxfE5y3UlXyyDVst4BnE"
+);
 
-const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+let carrinho = [];
 
-let vendaAtual = [];
-let caixaAberto = false;
-
-/* CAIXA */
-async function abrirCaixa(){
-await supabase.from("caixa").insert({status:"aberto", total:0});
-caixaAberto = true;
-alert("Caixa aberto!");
-}
-
-async function fecharCaixa(){
-await supabase.from("caixa").update({status:"fechado"}).eq("status","aberto");
-caixaAberto = false;
-alert("Caixa fechado!");
-}
-
-/* PRODUTOS */
-async function addProduto(){
-if(!nomeProduto.value) return alert("Digite o nome");
+async function salvarProduto(){
+if(!nome.value) return alert("Digite o nome");
 
 await supabase.from("produtos").insert({
-nome: nomeProduto.value,
-preco: Number(precoProduto.value),
-quantidade: Number(quantProduto.value)
+nome: nome.value,
+preco: Number(preco.value),
+quantidade: Number(quantidade.value)
 });
 
-nomeProduto.value="";
-precoProduto.value="";
-quantProduto.value="";
-carregarEstoque();
+nome.value="";
+preco.value="";
+quantidade.value="";
+
+alert("Produto salvo!");
 }
 
-async function carregarEstoque(){
-let {data} = await supabase.from("produtos").select("*");
-listaEstoque.innerHTML="";
-data.forEach(p=>{
-listaEstoque.innerHTML += `
-<div class="card">
-${p.nome} | R$ ${p.preco} | Estoque: ${p.quantidade}
-</div>`;
-});
-}
+async function buscarProduto(){
 
-/* BUSCAR */
-async function buscar(){
-let {data} = await supabase.from("produtos")
+let { data } = await supabase
+.from("produtos")
 .select("*")
-.ilike("nome","%"+buscarProduto.value+"%");
+.ilike("nome","%"+buscar.value+"%");
 
-resultadoBusca.innerHTML="";
+resultado.innerHTML="";
+
 data.forEach(p=>{
-resultadoBusca.innerHTML+=`
-<div class="card">
-${p.nome} - R$ ${p.preco}
-<button onclick="addVenda(${p.id},${p.preco})">Adicionar</button>
+resultado.innerHTML+=`
+<div class="item">
+<span>${p.nome} (Estoque: ${p.quantidade})</span>
+<button onclick="addCarrinho(${p.id}, '${p.nome}', ${p.preco}, ${p.quantidade})">+</button>
 </div>`;
 });
 }
 
-function addVenda(id,preco){
-if(!caixaAberto) return alert("Abra o caixa primeiro!");
-vendaAtual.push({id,preco});
+function addCarrinho(id,nome,preco,estoque){
+if(estoque<=0) return alert("Sem estoque");
+
+carrinho.push({id,nome,preco});
 atualizarTotal();
 }
 
 function atualizarTotal(){
-let total = vendaAtual.reduce((a,b)=>a+b.preco,0);
+let total = carrinho.reduce((a,b)=>a+b.preco,0);
 totalVenda.innerText = total.toFixed(2);
 }
 
-/* FINALIZAR */
 async function finalizarVenda(){
-if(vendaAtual.length==0) return alert("Sem produtos");
 
-let total = vendaAtual.reduce((a,b)=>a+b.preco,0);
+if(carrinho.length==0) return alert("Carrinho vazio");
+
+let total = carrinho.reduce((a,b)=>a+b.preco,0);
 
 /* Atualiza estoque */
-for(let item of vendaAtual){
-let {data} = await supabase.from("produtos")
+for(let item of carrinho){
+let { data } = await supabase
+.from("produtos")
 .select("quantidade")
 .eq("id",item.id)
 .single();
 
-await supabase.from("produtos")
+await supabase
+.from("produtos")
 .update({quantidade:data.quantidade-1})
 .eq("id",item.id);
 }
 
 /* Salva venda */
-await supabase.from("vendas").insert({
-total: total,
-cliente_nome: clienteNome.value,
-cliente_doc: clienteDoc.value
+await supabase
+.from("vendas")
+.insert({
+itens: carrinho,
+total: total
 });
 
-gerarPDF(total);
-
-vendaAtual=[];
+carrinho=[];
 atualizarTotal();
-clienteNome.value="";
-clienteDoc.value="";
+buscar.value="";
+resultado.innerHTML="";
 
-carregarEstoque();
+alert("Venda finalizada!");
+
 carregarHistorico();
 }
 
-/* HISTÓRICO */
 async function carregarHistorico(){
-let {data} = await supabase.from("vendas")
+
+let { data } = await supabase
+.from("vendas")
 .select("*")
 .order("id",{ascending:false});
 
 historico.innerHTML="";
+let totalHoje = 0;
+
 data.forEach(v=>{
 historico.innerHTML+=`
-<div class="card">
-Venda #${v.id} | R$ ${v.total} | ${new Date(v.created_at).toLocaleString()}
+<div class="item">
+<span>R$ ${v.total} - ${new Date(v.created_at).toLocaleString()}</span>
 </div>`;
+totalHoje += Number(v.total);
 });
+
+totalDia.innerText = totalHoje.toFixed(2);
 }
 
-/* PDF */
-function gerarPDF(total){
-const { jsPDF } = window.jspdf;
-const pdf = new jsPDF();
-pdf.text("Estação Verde",20,20);
-pdf.text("Cliente: "+clienteNome.value,20,30);
-pdf.text("CPF/CNPJ: "+clienteDoc.value,20,40);
-pdf.text("Total: R$ "+total.toFixed(2),20,55);
-pdf.text("Data: "+new Date().toLocaleString(),20,70);
-pdf.save("comprovante.pdf");
-}
-
-/* INICIAR */
-carregarEstoque();
 carregarHistorico();
 
 </script>
+
 </body>
 </html>
