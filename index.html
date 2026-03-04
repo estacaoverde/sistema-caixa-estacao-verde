@@ -8,19 +8,20 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
-body{font-family:Arial;background:#f4f4f4;margin:0;padding:15px}
-h2{color:#2e7d32}
-input{padding:8px;margin:4px;width:150px}
-button{padding:8px 12px;margin:4px;border:none;border-radius:6px;cursor:pointer}
+body{font-family:Arial;background:#eef5ee;margin:0;padding:15px}
+h1{color:#1b5e20}
+h3{margin-top:30px}
+input{padding:8px;margin:5px;border-radius:6px;border:1px solid #ccc}
+button{padding:8px 14px;margin:5px;border:none;border-radius:6px;cursor:pointer}
 .green{background:#2e7d32;color:white}
 .red{background:#c62828;color:white}
 .blue{background:#1565c0;color:white}
-.card{background:white;padding:10px;margin:6px 0;border-radius:8px}
+.card{background:white;padding:10px;margin:8px 0;border-radius:8px;box-shadow:0 2px 5px rgba(0,0,0,0.1)}
 </style>
 </head>
 <body>
 
-<h2>🌿 Estação Verde - Sistema de Caixa</h2>
+<h1>🌿 Estação Verde - Sistema de Caixa</h1>
 
 <button class="green" onclick="abrirCaixa()">Abrir Caixa</button>
 <button class="red" onclick="fecharCaixa()">Fechar Caixa</button>
@@ -30,22 +31,22 @@ button{padding:8px 12px;margin:4px;border:none;border-radius:6px;cursor:pointer}
 <hr>
 
 <h3>📦 Estoque</h3>
-<input id="nomeProduto" placeholder="Nome">
+<input id="nomeProduto" placeholder="Nome do Produto">
 <input id="precoProduto" type="number" placeholder="Preço">
-<input id="quantProduto" type="number" placeholder="Qtd">
-<button class="blue" onclick="addProduto()">Adicionar</button>
+<input id="quantProduto" type="number" placeholder="Quantidade">
+<button class="blue" onclick="addProduto()">Adicionar Produto</button>
 
 <div id="listaEstoque"></div>
 
 <hr>
 
 <h3>🛒 Venda</h3>
-<input id="buscarProduto" placeholder="Buscar">
+<input id="buscarProduto" placeholder="Buscar produto">
 <button onclick="buscar()">Buscar</button>
 
 <div id="resultadoBusca"></div>
 
-<input id="clienteNome" placeholder="Cliente">
+<input id="clienteNome" placeholder="Nome Cliente">
 <input id="clienteDoc" placeholder="CPF/CNPJ">
 
 <h3>Total Venda: R$ <span id="totalVenda">0.00</span></h3>
@@ -64,20 +65,19 @@ const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS
 const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 let vendaAtual = [];
-let caixaId = null;
+let caixaAberto = false;
 
 /* CAIXA */
 async function abrirCaixa(){
-let {data} = await supabase.from("caixa").insert({status:"aberto",total:0}).select().single();
-caixaId = data.id;
-alert("Caixa aberto");
+await supabase.from("caixa").insert({status:"aberto", total:0});
+caixaAberto = true;
+alert("Caixa aberto!");
 }
 
 async function fecharCaixa(){
-if(!caixaId) return alert("Abra o caixa primeiro");
-await supabase.from("caixa").update({status:"fechado"}).eq("id",caixaId);
-alert("Caixa fechado");
-caixaId = null;
+await supabase.from("caixa").update({status:"fechado"}).eq("status","aberto");
+caixaAberto = false;
+alert("Caixa fechado!");
 }
 
 /* PRODUTOS */
@@ -85,29 +85,26 @@ async function addProduto(){
 if(!nomeProduto.value) return alert("Digite o nome");
 
 await supabase.from("produtos").insert({
-nome:nomeProduto.value,
-preco:Number(precoProduto.value),
-quantidade:Number(quantProduto.value)
+nome: nomeProduto.value,
+preco: Number(precoProduto.value),
+quantidade: Number(quantProduto.value)
 });
 
 nomeProduto.value="";
 precoProduto.value="";
 quantProduto.value="";
-
 carregarEstoque();
 }
 
 async function carregarEstoque(){
 let {data} = await supabase.from("produtos").select("*");
 listaEstoque.innerHTML="";
-if(data){
 data.forEach(p=>{
-listaEstoque.innerHTML+=`
+listaEstoque.innerHTML += `
 <div class="card">
 ${p.nome} | R$ ${p.preco} | Estoque: ${p.quantidade}
 </div>`;
 });
-}
 }
 
 /* BUSCAR */
@@ -117,21 +114,18 @@ let {data} = await supabase.from("produtos")
 .ilike("nome","%"+buscarProduto.value+"%");
 
 resultadoBusca.innerHTML="";
-if(data){
 data.forEach(p=>{
 resultadoBusca.innerHTML+=`
 <div class="card">
-${p.nome} - R$ ${p.preco} (Estoque: ${p.quantidade})
-<button onclick="addVenda(${p.id}, ${p.preco}, ${p.quantidade})">Adicionar</button>
+${p.nome} - R$ ${p.preco}
+<button onclick="addVenda(${p.id},${p.preco})">Adicionar</button>
 </div>`;
 });
 }
-}
 
-function addVenda(id, preco, estoque){
-if(!caixaId) return alert("Abra o caixa primeiro");
-if(estoque <= 0) return alert("Sem estoque");
-vendaAtual.push({id, preco});
+function addVenda(id,preco){
+if(!caixaAberto) return alert("Abra o caixa primeiro!");
+vendaAtual.push({id,preco});
 atualizarTotal();
 }
 
@@ -142,7 +136,7 @@ totalVenda.innerText = total.toFixed(2);
 
 /* FINALIZAR */
 async function finalizarVenda(){
-if(vendaAtual.length === 0) return alert("Sem produto");
+if(vendaAtual.length==0) return alert("Sem produtos");
 
 let total = vendaAtual.reduce((a,b)=>a+b.preco,0);
 
@@ -150,33 +144,20 @@ let total = vendaAtual.reduce((a,b)=>a+b.preco,0);
 for(let item of vendaAtual){
 let {data} = await supabase.from("produtos")
 .select("quantidade")
-.eq("id", item.id)
+.eq("id",item.id)
 .single();
 
 await supabase.from("produtos")
-.update({quantidade: data.quantidade - 1})
-.eq("id", item.id);
+.update({quantidade:data.quantidade-1})
+.eq("id",item.id);
 }
 
 /* Salva venda */
 await supabase.from("vendas").insert({
 total: total,
 cliente_nome: clienteNome.value,
-cliente_doc: clienteDoc.value,
-caixa_id: caixaId
+cliente_doc: clienteDoc.value
 });
-
-/* Atualiza total caixa */
-let {data} = await supabase.from("caixa")
-.select("total")
-.eq("id", caixaId)
-.single();
-
-await supabase.from("caixa")
-.update({total: data.total + total})
-.eq("id", caixaId);
-
-totalCaixa.innerText = (data.total + total).toFixed(2);
 
 gerarPDF(total);
 
@@ -196,20 +177,18 @@ let {data} = await supabase.from("vendas")
 .order("id",{ascending:false});
 
 historico.innerHTML="";
-if(data){
 data.forEach(v=>{
 historico.innerHTML+=`
 <div class="card">
-Venda #${v.id} | R$ ${v.total}
+Venda #${v.id} | R$ ${v.total} | ${new Date(v.created_at).toLocaleString()}
 </div>`;
 });
-}
 }
 
 /* PDF */
 function gerarPDF(total){
 const { jsPDF } = window.jspdf;
-const pdf=new jsPDF();
+const pdf = new jsPDF();
 pdf.text("Estação Verde",20,20);
 pdf.text("Cliente: "+clienteNome.value,20,30);
 pdf.text("CPF/CNPJ: "+clienteDoc.value,20,40);
@@ -223,6 +202,5 @@ carregarEstoque();
 carregarHistorico();
 
 </script>
-
 </body>
 </html>
