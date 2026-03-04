@@ -3,39 +3,67 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sistema Caixa - Estação Verde</title>
+<title>Estação Verde - Sistema</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
 <style>
 body{
-    font-family: Arial;
     margin:0;
-    background:#0f172a;
+    font-family:Arial;
+    background:linear-gradient(135deg,#0f172a,#1e293b);
     color:white;
 }
+
 header{
-    background:#065f46;
     padding:15px;
     text-align:center;
     font-size:20px;
+    background:linear-gradient(90deg,#065f46,#16a34a);
 }
+
 .container{padding:15px}
-input,button{
+
+input{
     width:100%;
     padding:10px;
     margin:5px 0;
-    border-radius:5px;
     border:none;
+    border-radius:8px;
 }
-button{cursor:pointer;font-weight:bold}
-.btn-green{background:#16a34a;color:white}
-.btn-red{background:#dc2626;color:white}
-.btn-blue{background:#2563eb;color:white}
+
+button{
+    width:100%;
+    padding:12px;
+    margin:5px 0;
+    border:none;
+    border-radius:10px;
+    font-weight:bold;
+    cursor:pointer;
+    color:white;
+}
+
+/* Botões menu */
+.menu button:nth-child(1){
+    background:linear-gradient(90deg,#16a34a,#22c55e);
+}
+.menu button:nth-child(2){
+    background:linear-gradient(90deg,#2563eb,#3b82f6);
+}
+.menu button:nth-child(3){
+    background:linear-gradient(90deg,#f59e0b,#f97316);
+}
+
+.btn-green{background:linear-gradient(90deg,#16a34a,#22c55e);}
+.btn-blue{background:linear-gradient(90deg,#2563eb,#3b82f6);}
+.btn-red{background:linear-gradient(90deg,#dc2626,#ef4444);}
+
 .card{
     background:#1e293b;
     padding:10px;
-    border-radius:8px;
+    border-radius:10px;
     margin:10px 0;
 }
+
 .hidden{display:none}
 </style>
 </head>
@@ -43,62 +71,66 @@ button{cursor:pointer;font-weight:bold}
 
 <header>🌿 Estação Verde - Sistema Caixa</header>
 
-<div class="container" id="login">
-<h3>Login</h3>
-<input type="text" id="user" placeholder="Usuário">
-<input type="password" id="pass" placeholder="Senha">
-<button class="btn-green" onclick="entrar()">Entrar</button>
+<div class="container">
+
+<!-- MENU -->
+<div class="menu">
+<button onclick="mostrarTela('estoque')">📦 Estoque</button>
+<button onclick="mostrarTela('vendas')">💰 Vendas</button>
+<button onclick="mostrarTela('historico')">📜 Histórico</button>
 </div>
 
-<div class="container hidden" id="sistema">
+<!-- ESTOQUE -->
+<div id="estoque" class="hidden">
 
-<h3>📦 Estoque</h3>
-
+<h3>Cadastro de Produto</h3>
 <input type="text" id="nomeProduto" placeholder="Nome do Produto">
 <input type="number" id="precoProduto" placeholder="Preço">
 <input type="number" id="qtdProduto" placeholder="Quantidade">
 <button class="btn-green" onclick="salvarProduto()">Salvar Produto</button>
 
 <div id="listaProdutos"></div>
+</div>
 
-<hr>
+<!-- VENDAS -->
+<div id="vendas" class="hidden">
 
-<h3>💰 Vendas</h3>
-
-<input type="text" id="buscarProduto" placeholder="Buscar produto pelo nome" onkeyup="buscar()">
+<input type="text" id="buscarProduto" placeholder="Buscar produto" onkeyup="buscar()">
 <div id="resultadoBusca"></div>
 
-<h4>Total: R$ <span id="totalVenda">0.00</span></h4>
+<h3>Total: R$ <span id="totalVenda">0.00</span></h3>
+
 <button class="btn-blue" onclick="finalizarVenda()">Finalizar Venda</button>
 <button class="btn-green" onclick="gerarPDF()">Gerar PDF do Dia</button>
 
-<hr>
+</div>
 
-<h3>📜 Histórico</h3>
-<div id="historico"></div>
+<!-- HISTÓRICO -->
+<div id="historico" class="hidden">
+<div id="listaHistorico"></div>
+</div>
 
 </div>
 
 <script>
+
 let produtos = JSON.parse(localStorage.getItem("produtos")) || [];
 let historico = JSON.parse(localStorage.getItem("historico")) || [];
 let carrinho = [];
 let total = 0;
 
 function salvarLocal(){
-localStorage.setItem("produtos", JSON.stringify(produtos));
-localStorage.setItem("historico", JSON.stringify(historico));
+localStorage.setItem("produtos",JSON.stringify(produtos));
+localStorage.setItem("historico",JSON.stringify(historico));
 }
 
-function entrar(){
-if(user.value==="viveiro" && pass.value==="2020"){
-login.classList.add("hidden");
-sistema.classList.remove("hidden");
+function mostrarTela(tela){
+document.getElementById("estoque").classList.add("hidden");
+document.getElementById("vendas").classList.add("hidden");
+document.getElementById("historico").classList.add("hidden");
+document.getElementById(tela).classList.remove("hidden");
 mostrarProdutos();
 mostrarHistorico();
-}else{
-alert("Login incorreto");
-}
 }
 
 function salvarProduto(){
@@ -117,29 +149,29 @@ qtdProduto.value="";
 
 function mostrarProdutos(){
 listaProdutos.innerHTML="";
-produtos.forEach((p,index)=>{
+produtos.forEach((p,i)=>{
 listaProdutos.innerHTML+=`
 <div class="card">
 <b>${p.nome}</b><br>
 R$ ${p.preco} | Estoque: ${p.qtd}
-<button class="btn-green" onclick="alterarEstoque(${index},1)">➕</button>
-<button class="btn-red" onclick="alterarEstoque(${index},-1)">➖</button>
-<button class="btn-blue" onclick="alterarPreco(${index})">Alterar Preço</button>
+<button class="btn-green" onclick="alterarEstoque(${i},1)">➕</button>
+<button class="btn-red" onclick="alterarEstoque(${i},-1)">➖</button>
+<button class="btn-blue" onclick="alterarPreco(${i})">Alterar Preço</button>
 </div>`;
 });
 }
 
-function alterarEstoque(index,valor){
-produtos[index].qtd+=valor;
-if(produtos[index].qtd<0)produtos[index].qtd=0;
+function alterarEstoque(i,valor){
+produtos[i].qtd+=valor;
+if(produtos[i].qtd<0)produtos[i].qtd=0;
 salvarLocal();
 mostrarProdutos();
 }
 
-function alterarPreco(index){
+function alterarPreco(i){
 let novo = prompt("Novo preço:");
 if(novo){
-produtos[index].preco=parseFloat(novo);
+produtos[i].preco=parseFloat(novo);
 salvarLocal();
 mostrarProdutos();
 }
@@ -148,22 +180,22 @@ mostrarProdutos();
 function buscar(){
 let termo = buscarProduto.value.toLowerCase();
 resultadoBusca.innerHTML="";
-produtos.forEach((p,index)=>{
+produtos.forEach((p,i)=>{
 if(p.nome.toLowerCase().includes(termo)){
 resultadoBusca.innerHTML+=`
 <div class="card">
 ${p.nome} - R$ ${p.preco}
-<button class="btn-green" onclick="addCarrinho(${index})">Adicionar</button>
+<button class="btn-green" onclick="addCarrinho(${i})">Adicionar</button>
 </div>`;
 }
 });
 }
 
-function addCarrinho(index){
-if(produtos[index].qtd>0){
-carrinho.push(produtos[index]);
-produtos[index].qtd--;
-total+=produtos[index].preco;
+function addCarrinho(i){
+if(produtos[i].qtd>0){
+carrinho.push(produtos[i]);
+produtos[i].qtd--;
+total+=produtos[i].preco;
 totalVenda.innerText=total.toFixed(2);
 salvarLocal();
 mostrarProdutos();
@@ -175,7 +207,7 @@ alert("Sem estoque");
 function finalizarVenda(){
 if(carrinho.length==0)return;
 
-let data = new Date();
+let data=new Date();
 historico.push({
 data:data.toLocaleDateString(),
 hora:data.toLocaleTimeString(),
@@ -192,12 +224,12 @@ alert("Venda finalizada!");
 }
 
 function mostrarHistorico(){
-historico.innerHTML="";
+listaHistorico.innerHTML="";
 historico.forEach(v=>{
-historico.innerHTML+=`
+listaHistorico.innerHTML+=`
 <div class="card">
-Data: ${v.data} <br>
-Hora: ${v.hora} <br>
+Data: ${v.data}<br>
+Hora: ${v.hora}<br>
 Total: R$ ${v.total.toFixed(2)}
 </div>`;
 });
@@ -205,24 +237,23 @@ Total: R$ ${v.total.toFixed(2)}
 
 function gerarPDF(){
 const { jsPDF } = window.jspdf;
-let doc = new jsPDF();
+let doc=new jsPDF();
+let texto="Relatório do Dia\n\n";
+let totalDia=0;
 
-let hoje = new Date().toLocaleDateString();
-let vendasHoje = historico.filter(v=>v.data===hoje);
-
-let totalDia = 0;
-let texto = "Relatório do Dia\n\n";
-
-vendasHoje.forEach(v=>{
-texto+=`Data: ${v.data} Hora: ${v.hora} Total: R$ ${v.total}\n`;
+let hoje=new Date().toLocaleDateString();
+historico.forEach(v=>{
+if(v.data===hoje){
+texto+=`Hora: ${v.hora} - R$ ${v.total}\n`;
 totalDia+=v.total;
+}
 });
 
 texto+=`\nTotal do Dia: R$ ${totalDia.toFixed(2)}`;
-
 doc.text(texto,10,10);
-doc.save("relatorio-dia.pdf");
+doc.save("relatorio.pdf");
 }
+
 </script>
 
 </body>
