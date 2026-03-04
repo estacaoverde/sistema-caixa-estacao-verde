@@ -21,11 +21,11 @@ button{padding:8px 12px;margin:5px;border:none;border-radius:6px;cursor:pointer}
 </head>
 <body>
 
-<div class="container" id="login">
+<div class="container" id="telaLogin">
 <h2>🔐 Login</h2>
-<input id="usuario" placeholder="Usuário">
-<input id="senha" type="password" placeholder="Senha">
-<button class="green" onclick="login()">Entrar</button>
+<input id="usuarioInput" placeholder="Usuário">
+<input id="senhaInput" type="password" placeholder="Senha">
+<button class="green" onclick="fazerLogin()">Entrar</button>
 </div>
 
 <div id="sistema" class="hidden container">
@@ -78,10 +78,13 @@ const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 let vendaAtual = [];
 let caixaAberto = false;
 
-function login(){
-if(usuario.value==="Nerys" && senha.value==="2020"){
-login.style.display="none";
-sistema.classList.remove("hidden");
+function fazerLogin(){
+let user = document.getElementById("usuarioInput").value.trim();
+let pass = document.getElementById("senhaInput").value.trim();
+
+if(user === "Nerys" && pass === "2020"){
+document.getElementById("telaLogin").style.display = "none";
+document.getElementById("sistema").classList.remove("hidden");
 carregarEstoque();
 carregarHistorico();
 }else{
