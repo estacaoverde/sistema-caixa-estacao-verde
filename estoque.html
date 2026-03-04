@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+<script>
+if(localStorage.getItem("logado")!=="sim"){window.location.href="index.html"}
+</script>
+
+<h2>📦 Estoque</h2>
+
+<script>
+const SUPABASE_URL="https://ycxfeztfhffgyrmeyira.supabase.co"
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljeGZlenRmaGZmZ3lybWV5aXJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NzE3MDQsImV4cCI6MjA4ODE0NzcwNH0.MTf_fzLganV20cMovHrrLwOOxfE5y3UlXyyDVst4BnE"
+const {createClient}=supabase
+const supabaseClient=createClient(SUPABASE_URL,SUPABASE_KEY)
+
+async function listar(){
+const{data}=await supabaseClient.from("produtos").select("*")
+console.log(data)
+}
+listar()
+</script>
+
+</body>
+</html>
