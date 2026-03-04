@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Histórico</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+body{font-family:Arial;background:#0f172a;color:white;padding:20px}
+.card{background:#1e293b;padding:20px;border-radius:10px;margin-bottom:20px}
+.item{background:#334155;padding:10px;margin:5px 0;border-radius:5px}
+</style>
+</head>
+<body>
+
+<script>
+if(localStorage.getItem("logado")!=="sim"){
+window.location.href="index.html"
+}
+</script>
+
+<h2>📊 Histórico de Vendas</h2>
+
+<div class="card">
+<div id="lista"></div>
+</div>
+
+<script>
+
+const SUPABASE_URL="https://ycxfeztfhffgyrmeyira.supabase.co"
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljeGZlenRmaGZmZ3lybWV5aXJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NzE3MDQsImV4cCI6MjA4ODE0NzcwNH0.MTf_fzLganV20cMovHrrLwOOxfE5y3UlXyyDVst4BnE"
+
+const supabaseClient = supabase.createClient(SUPABASE_URL,SUPABASE_KEY)
+
+async function listar(){
+
+let {data,error} = await supabaseClient
+.from("vendas")
+.select("*")
+.order("id",{ascending:false})
+
+if(error){
+document.getElementById("lista").innerHTML="Erro: "+error.message
+return
+}
+
+if(!data.length){
+document.getElementById("lista").innerHTML="Nenhuma venda registrada"
+return
+}
+
+let div=document.getElementById("lista")
+div.innerHTML=""
+
+data.forEach(v=>{
+div.innerHTML+=`
+<div class="item">
+Venda #${v.id}<br>
+Total: R$ ${v.total}<br>
+Data: ${v.data}
+</div>`
+})
+
+}
+
+listar()
+
+</script>
+
+</body>
+</html>
