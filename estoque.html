@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Estoque</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
 body{font-family:Arial;background:#0f172a;color:white;padding:20px}
 .card{background:#1e293b;padding:20px;border-radius:10px;margin-bottom:20px}
@@ -27,7 +28,7 @@ window.location.href="index.html"
 <h3>Adicionar Produto</h3>
 <input type="text" id="nome" placeholder="Nome do produto">
 <input type="number" id="preco" placeholder="Preço">
-<input type="number" id="estoque" placeholder="Quantidade">
+<input type="number" id="estoqueQtd" placeholder="Quantidade">
 <button onclick="adicionarProduto()">Salvar Produto</button>
 </div>
 
@@ -37,40 +38,66 @@ window.location.href="index.html"
 </div>
 
 <script>
+
 const SUPABASE_URL="https://ycxfeztfhffgyrmeyira.supabase.co"
 const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljeGZlenRmaGZmZ3lybWV5aXJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NzE3MDQsImV4cCI6MjA4ODE0NzcwNH0.MTf_fzLganV20cMovHrrLwOOxfE5y3UlXyyDVst4BnE"
 
-const {createClient}=supabase
-const supabaseClient=createClient(SUPABASE_URL,SUPABASE_KEY)
+const supabaseClient = supabase.createClient(SUPABASE_URL,SUPABASE_KEY)
 
 async function adicionarProduto(){
+
 let nome=document.getElementById("nome").value
 let preco=document.getElementById("preco").value
-let estoque=document.getElementById("estoque").value
+let estoque=document.getElementById("estoqueQtd").value
 
-if(!nome||!preco||!estoque)return alert("Preencha tudo")
+if(!nome||!preco||!estoque){
+alert("Preencha tudo")
+return
+}
 
-await supabaseClient.from("produtos").insert([{
-nome,preco,estoque
-}])
+let {error} = await supabaseClient
+.from("produtos")
+.insert([{nome,preco,estoque}])
+
+if(error){
+alert("Erro: "+error.message)
+return
+}
 
 alert("Produto salvo!")
 listar()
 }
 
 async function listar(){
-const{data}=await supabaseClient.from("produtos").select("*")
+
+let {data,error} = await supabaseClient
+.from("produtos")
+.select("*")
+
+if(error){
+document.getElementById("lista").innerHTML="ERRO: "+error.message
+return
+}
+
+if(!data.length){
+document.getElementById("lista").innerHTML="Nenhum produto cadastrado"
+return
+}
+
 let div=document.getElementById("lista")
 div.innerHTML=""
+
 data.forEach(p=>{
 div.innerHTML+=`
 <div class="item">
 ${p.nome} | R$ ${p.preco} | Estoque: ${p.estoque}
 </div>`
 })
+
 }
 
 listar()
+
 </script>
 
 </body>
