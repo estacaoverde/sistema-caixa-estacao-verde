@@ -2,200 +2,227 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Estação Verde - Sistema</title>
+<title>Estação Verde - Caixa</title>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <style>
-body{font-family:Arial;background:#f4f4f4;margin:0;padding:0}
-.container{padding:20px}
-.hidden{display:none}
-button{padding:10px;border:none;border-radius:8px;margin:5px;cursor:pointer}
-.btn1{background:linear-gradient(45deg,#2ecc71,#27ae60);color:white}
-.btn2{background:linear-gradient(45deg,#3498db,#2980b9);color:white}
-.btn3{background:linear-gradient(45deg,#e74c3c,#c0392b);color:white}
-input{padding:8px;margin:5px;width:200px}
-.card{background:white;padding:15px;margin:10px 0;border-radius:10px}
+body{font-family:Arial;background:#f4f4f4;margin:0;padding:15px}
+h2{color:#2e7d32}
+input{padding:8px;margin:4px;width:150px}
+button{padding:8px 12px;margin:4px;border:none;border-radius:6px;cursor:pointer}
+.green{background:#2e7d32;color:white}
+.red{background:#c62828;color:white}
+.blue{background:#1565c0;color:white}
+.card{background:white;padding:10px;margin:6px 0;border-radius:8px}
 </style>
 </head>
 <body>
 
-<div class="container" id="login">
-<h2>🔐 Login</h2>
-<input id="email" placeholder="Email">
-<input id="senha" type="password" placeholder="Senha">
-<button class="btn1" onclick="login()">Entrar</button>
-</div>
+<h2>🌿 Estação Verde - Sistema de Caixa</h2>
 
-<div id="sistema" class="hidden container">
+<button class="green" onclick="abrirCaixa()">Abrir Caixa</button>
+<button class="red" onclick="fecharCaixa()">Fechar Caixa</button>
 
-<h2>🌿 Estação Verde - Caixa</h2>
-
-<button class="btn1" onclick="abrirCaixa()">🔓 Abrir Caixa</button>
-<button class="btn3" onclick="fecharCaixa()">🔒 Fechar Caixa</button>
-
-<h3>💰 Total Caixa: R$ <span id="totalCaixa">0.00</span></h3>
+<h3>Total Caixa: R$ <span id="totalCaixa">0.00</span></h3>
 
 <hr>
 
 <h3>📦 Estoque</h3>
 <input id="nomeProduto" placeholder="Nome">
-<input id="precoProduto" placeholder="Preço">
-<input id="quantProduto" placeholder="Quantidade">
-<button class="btn2" onclick="addProduto()">Adicionar</button>
+<input id="precoProduto" type="number" placeholder="Preço">
+<input id="quantProduto" type="number" placeholder="Qtd">
+<button class="blue" onclick="addProduto()">Adicionar</button>
 
 <div id="listaEstoque"></div>
 
 <hr>
 
 <h3>🛒 Venda</h3>
-<input id="buscarProduto" placeholder="Buscar produto">
+<input id="buscarProduto" placeholder="Buscar">
 <button onclick="buscar()">Buscar</button>
 
 <div id="resultadoBusca"></div>
 
+<input id="clienteNome" placeholder="Cliente">
+<input id="clienteDoc" placeholder="CPF/CNPJ">
+
 <h3>Total Venda: R$ <span id="totalVenda">0.00</span></h3>
-<button class="btn1" onclick="finalizarVenda()">Finalizar Venda</button>
+<button class="green" onclick="finalizarVenda()">Finalizar Venda</button>
 
 <hr>
 
 <h3>📊 Histórico</h3>
 <div id="historico"></div>
 
-</div>
-
 <script>
+
 const supabaseUrl = "https://ycxfeztfhffgyrmeyira.supabase.co";
 const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljeGZlenRmaGZmZ3lybWV5aXJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NzE3MDQsImV4cCI6MjA4ODE0NzcwNH0.MTf_fzLganV20cMovHrrLwOOxfE5y3UlXyyDVst4BnE";
+
 const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 let vendaAtual = [];
-let caixaAberto = false;
+let caixaId = null;
 
-async function login(){
-const {data,error} = await supabase.auth.signInWithPassword({
-email:email.value,
-password:senha.value
-});
-if(error){alert("Erro login");return;}
-login.style.display="none";
-sistema.classList.remove("hidden");
-carregarEstoque();
-carregarHistorico();
-}
-
+/* CAIXA */
 async function abrirCaixa(){
-await supabase.from("caixa").insert({status:"aberto",total:0});
-caixaAberto=true;
-alert("Caixa Aberto");
+let {data} = await supabase.from("caixa").insert({status:"aberto",total:0}).select().single();
+caixaId = data.id;
+alert("Caixa aberto");
 }
 
 async function fecharCaixa(){
-await supabase.from("caixa").update({status:"fechado"}).eq("status","aberto");
-caixaAberto=false;
-alert("Caixa Fechado");
+if(!caixaId) return alert("Abra o caixa primeiro");
+await supabase.from("caixa").update({status:"fechado"}).eq("id",caixaId);
+alert("Caixa fechado");
+caixaId = null;
 }
 
+/* PRODUTOS */
 async function addProduto(){
+if(!nomeProduto.value) return alert("Digite o nome");
+
 await supabase.from("produtos").insert({
 nome:nomeProduto.value,
-preco:precoProduto.value,
-quantidade:quantProduto.value
+preco:Number(precoProduto.value),
+quantidade:Number(quantProduto.value)
 });
+
+nomeProduto.value="";
+precoProduto.value="";
+quantProduto.value="";
+
 carregarEstoque();
 }
 
 async function carregarEstoque(){
 let {data} = await supabase.from("produtos").select("*");
 listaEstoque.innerHTML="";
+if(data){
 data.forEach(p=>{
 listaEstoque.innerHTML+=`
 <div class="card">
-${p.nome} - R$ ${p.preco} - Qtd:${p.quantidade}
-<button onclick="editar(${p.id})">Editar</button>
-<button onclick="remover(${p.id})">Remover</button>
+${p.nome} | R$ ${p.preco} | Estoque: ${p.quantidade}
 </div>`;
 });
 }
-
-async function editar(id){
-let novo = prompt("Nova quantidade:");
-await supabase.from("produtos").update({quantidade:novo}).eq("id",id);
-carregarEstoque();
 }
 
-async function remover(id){
-await supabase.from("produtos").delete().eq("id",id);
-carregarEstoque();
-}
-
+/* BUSCAR */
 async function buscar(){
 let {data} = await supabase.from("produtos")
 .select("*")
 .ilike("nome","%"+buscarProduto.value+"%");
+
 resultadoBusca.innerHTML="";
+if(data){
 data.forEach(p=>{
 resultadoBusca.innerHTML+=`
 <div class="card">
-${p.nome} - R$ ${p.preco}
-<button onclick="addVenda(${p.id},${p.preco})">Adicionar</button>
+${p.nome} - R$ ${p.preco} (Estoque: ${p.quantidade})
+<button onclick="addVenda(${p.id}, ${p.preco}, ${p.quantidade})">Adicionar</button>
 </div>`;
 });
 }
+}
 
-function addVenda(id,preco){
-if(!caixaAberto){alert("Caixa fechado");return;}
-vendaAtual.push(preco);
+function addVenda(id, preco, estoque){
+if(!caixaId) return alert("Abra o caixa primeiro");
+if(estoque <= 0) return alert("Sem estoque");
+vendaAtual.push({id, preco});
 atualizarTotal();
 }
 
 function atualizarTotal(){
-let total = vendaAtual.reduce((a,b)=>a+b,0);
-totalVenda.innerText=total.toFixed(2);
+let total = vendaAtual.reduce((a,b)=>a+b.preco,0);
+totalVenda.innerText = total.toFixed(2);
 }
 
+/* FINALIZAR */
 async function finalizarVenda(){
-if(vendaAtual.length==0){alert("Sem produto");return;}
-let total = vendaAtual.reduce((a,b)=>a+b,0);
+if(vendaAtual.length === 0) return alert("Sem produto");
 
+let total = vendaAtual.reduce((a,b)=>a+b.preco,0);
+
+/* Atualiza estoque */
+for(let item of vendaAtual){
+let {data} = await supabase.from("produtos")
+.select("quantidade")
+.eq("id", item.id)
+.single();
+
+await supabase.from("produtos")
+.update({quantidade: data.quantidade - 1})
+.eq("id", item.id);
+}
+
+/* Salva venda */
 await supabase.from("vendas").insert({
-total:total
+total: total,
+cliente_nome: clienteNome.value,
+cliente_doc: clienteDoc.value,
+caixa_id: caixaId
 });
 
-let {data} = await supabase.from("caixa").select("*").eq("status","aberto").single();
-await supabase.from("caixa").update({
-total:data.total + total
-}).eq("id",data.id);
+/* Atualiza total caixa */
+let {data} = await supabase.from("caixa")
+.select("total")
+.eq("id", caixaId)
+.single();
 
-totalCaixa.innerText=(data.total + total).toFixed(2);
+await supabase.from("caixa")
+.update({total: data.total + total})
+.eq("id", caixaId);
+
+totalCaixa.innerText = (data.total + total).toFixed(2);
 
 gerarPDF(total);
 
 vendaAtual=[];
 atualizarTotal();
+clienteNome.value="";
+clienteDoc.value="";
+
+carregarEstoque();
 carregarHistorico();
 }
 
+/* HISTÓRICO */
 async function carregarHistorico(){
-let {data} = await supabase.from("vendas").select("*").order("id",{ascending:false});
+let {data} = await supabase.from("vendas")
+.select("*")
+.order("id",{ascending:false});
+
 historico.innerHTML="";
+if(data){
 data.forEach(v=>{
 historico.innerHTML+=`
 <div class="card">
-Venda #${v.id} - R$ ${v.total}
+Venda #${v.id} | R$ ${v.total}
 </div>`;
 });
 }
-
-function gerarPDF(total){
-const { jsPDF } = window.jspdf;
-const doc = new jsPDF();
-doc.text("Estação Verde",20,20);
-doc.text("Total: R$ "+total,20,30);
-doc.save("comprovante.pdf");
 }
 
+/* PDF */
+function gerarPDF(total){
+const { jsPDF } = window.jspdf;
+const pdf=new jsPDF();
+pdf.text("Estação Verde",20,20);
+pdf.text("Cliente: "+clienteNome.value,20,30);
+pdf.text("CPF/CNPJ: "+clienteDoc.value,20,40);
+pdf.text("Total: R$ "+total.toFixed(2),20,55);
+pdf.text("Data: "+new Date().toLocaleString(),20,70);
+pdf.save("comprovante.pdf");
+}
+
+/* INICIAR */
+carregarEstoque();
+carregarHistorico();
+
 </script>
+
 </body>
 </html>
