@@ -4,7 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vendas</title>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
 body{font-family:Arial;background:#0f172a;color:white;padding:20px}
 .card{background:#1e293b;padding:20px;border-radius:10px;margin-bottom:20px}
@@ -16,7 +18,9 @@ button{width:100%;padding:12px;background:#22c55e;color:white;border:none;border
 <body>
 
 <script>
-if(localStorage.getItem("logado")!=="sim"){window.location.href="index.html"}
+if(localStorage.getItem("logado")!=="sim"){
+window.location.href="index.html"
+}
 </script>
 
 <h2>🛒 Nova Venda</h2>
@@ -32,64 +36,133 @@ if(localStorage.getItem("logado")!=="sim"){window.location.href="index.html"}
 </div>
 
 <script>
-const SUPABASE_URL="https://ycxfeztfhffgyrmeyira.supabase.co"
-const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljeGZlenRmaGZmZ3lybWV5aXJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NzE3MDQsImV4cCI6MjA4ODE0NzcwNH0.MTf_fzLganV20cMovHrrLwOOxfE5y3UlXyyDVst4BnE"
+const SUPABASE_URL = "https://ycxfeztfhffgyrmeyira.supabase.co"
+const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InljeGZlenRmaGZmZ3lybWV5aXJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI1NzE3MDQsImV4cCI6MjA4ODE0NzcwNH0.MTf_fzLganV20cMovHrrLwOOxfE5y3UlXyyDVst4BnE"
 
-const {createClient}=supabase
-const supabaseClient=createClient(SUPABASE_URL,SUPABASE_KEY)
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
 
-let carrinho=[]
-let total=0
+let carrinho = []
+let total = 0
 
 async function adicionarProduto(){
-let nome=document.getElementById("buscarProduto").value
-let quantidade=Number(document.getElementById("quantidade").value)
-if(!nome||!quantidade)return alert("Preencha tudo")
-const{data}=await supabaseClient.from("produtos").select("*").ilike("nome",`%${nome}%`).limit(1)
-if(!data.length)return alert("Produto não encontrado")
-let produto=data[0]
-if(produto.estoque<quantidade)return alert("Estoque insuficiente")
-let subtotal=produto.preco*quantidade
-carrinho.push({id:produto.id,nome:produto.nome,quantidade,preco:produto.preco,subtotal})
-total+=subtotal
+let nome = document.getElementById("buscarProduto").value
+let quantidade = Number(document.getElementById("quantidade").value)
+
+if(!nome || !quantidade){
+alert("Preencha tudo")
+return
+}
+
+const { data, error } = await supabaseClient
+.from("produtos")
+.select("*")
+.ilike("nome", `%${nome}%`)
+.limit(1)
+
+if(error){
+alert(error.message)
+return
+}
+
+if(!data.length){
+alert("Produto não encontrado")
+return
+}
+
+let produto = data[0]
+
+if(produto.estoque < quantidade){
+alert("Estoque insuficiente")
+return
+}
+
+let subtotal = produto.preco * quantidade
+
+carrinho.push({
+id: produto.id,
+nome: produto.nome,
+quantidade,
+preco: produto.preco,
+subtotal
+})
+
+total += subtotal
+
 render()
 }
 
 function render(){
-let div=document.getElementById("itens")
-div.innerHTML=""
+let div = document.getElementById("itens")
+div.innerHTML = ""
+
 carrinho.forEach((item,i)=>{
-div.innerHTML+=`<div class="item">
+div.innerHTML += `
+<div class="item">
 ${item.nome} - ${item.quantidade} x ${item.preco} = ${item.subtotal}
 <button onclick="remover(${i})" style="background:#ef4444">Remover</button>
 </div>`
 })
-document.getElementById("total").innerText=total
+
+document.getElementById("total").innerText = total
 }
 
 function remover(i){
-total-=carrinho[i].subtotal
+total -= carrinho[i].subtotal
 carrinho.splice(i,1)
 render()
 }
 
 async function finalizarVenda(){
-if(!carrinho.length)return alert("Carrinho vazio")
-let hoje=new Date().toLocaleDateString()
-const{data:venda,error}=await supabaseClient.from("vendas").insert([{
-total,cliente:"Balcão",pagamento:"Dinheiro",data:hoje
-}]).select()
-if(error)return alert(error.message)
-let venda_id=venda[0].id
-for(let item of carrinho){
-await supabaseClient.from("itens_venda").insert([{
-venda_id,produto_id:item.id,quantidade:item.quantidade,preco:item.preco
-}])
-let{data:prod}=await supabaseClient.from("produtos").select("estoque").eq("id",item.id).single()
-await supabaseClient.from("produtos").update({estoque:prod.estoque-item.quantidade}).eq("id",item.id)
+if(!carrinho.length){
+alert("Carrinho vazio")
+return
 }
+
+let hoje = new Date().toLocaleDateString()
+
+const { data: venda, error } = await supabaseClient
+.from("vendas")
+.insert([{
+total,
+cliente: "Balcão",
+pagamento: "Dinheiro",
+data: hoje
+}])
+.select()
+
+if(error){
+alert(error.message)
+return
+}
+
+let venda_id = venda[0].id
+
+for(let item of carrinho){
+
+await supabaseClient.from("itens_venda").insert([{
+venda_id: venda_id,
+produto_id: item.id,
+quantidade: item.quantidade,
+preco: item.preco
+}])
+
+let { data: prod } = await supabaseClient
+.from("produtos")
+.select("estoque")
+.eq("id", item.id)
+.single()
+
+await supabaseClient
+.from("produtos")
+.update({ estoque: prod.estoque - item.quantidade })
+.eq("id", item.id)
+}
+
 alert("Venda finalizada!")
-carrinho=[];total=0;render()
+
+carrinho = []
+total = 0
+render()
 }
 </script>
 
